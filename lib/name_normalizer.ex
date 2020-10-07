@@ -1,51 +1,38 @@
 defmodule NameNormalizer do
   def normalize(name) do
-    String.trim(name) |> parts |> format
-  end
-
-  def parts(name), do: String.split(name, " ")
-
-  def format(parts) do
-    cond do
-      is_mononym(parts) -> format_mononym(parts)
-      is_duonym(parts) -> format_duonym(parts)
-      true -> format_multinym(parts)
+    if StringUtil.count_char(name, ?,) > 1 do
+      {:error, "Too many commas"}
+    else
+      {:ok,
+      (String.trim(name) |> extract_base_name |> format_base_name)
+        <>
+      suffix(name)}
     end
   end
 
-  def format_mononym(parts), do: first_name(parts)
-
-  def format_duonym(parts), do: last_name(parts) <> ", " <> first_name(parts)
-
-  def format_multinym(parts), do: last_name(parts) <> ", " <> first_name(parts) <> " " <> middle_initials(parts)
-
-  def middle_initials(parts), do: middle(parts) |> Enum.map(&initial/1) |> Enum.join(" ")
-
-  def middle([_ | tail]) do
-    [_ | tail ] = Enum.reverse(tail)
-    Enum.reverse(tail)
-  end
-
-#  def middle(list) do
-#    list |> Enum.drop(1) |> Enum.take(length(list) - 2)
-#  end
-
-  def middle_initial(parts), do: parts |> middle_name |> initial
-
-  def initial(name) do
-    case String.graphemes(name) do
-      [first] -> first
-      [first | _] -> first <> "."
+  def suffix(name) do
+    case String.split(name, ",") do
+      [_] -> ""
+      [_, suffix] -> ", " <> String.trim(suffix)
     end
   end
 
-  def middle_name(parts), do: Enum.at(parts, 1)
+  def extract_base_name(name), do: Enum.at(String.split(name, ","), 0)
 
-  def last_name(parts), do: List.last(parts)
+  def format_base_name(name), do: String.split(name, " ") |> format
 
-  def first_name(parts), do: List.first(parts)
+  def format([mononym]), do: mononym
+  def format([first, last]), do: last <> ", " <> first
+  def format([first | rest]), do: List.last(rest) <> ", " <> first <> " " <> middle_initials(rest)
 
-  def is_mononym(parts), do: length(parts) === 1
+  def middle_initials(rest) do
+    ListUtil.but_last(rest)
+    |> Enum.map(&initial/1)
+    |> Enum.join(" ")
+  end
 
-  def is_duonym(parts), do: length(parts) === 2
+  def initial(<<one_letter_name :: binary - size(1)>>), do: one_letter_name
+  def initial(<<first_letter :: binary - size(1)>> <> _), do: first_letter <> "."
 end
+
+

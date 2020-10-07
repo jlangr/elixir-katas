@@ -1,33 +1,41 @@
 defmodule NameNormalizerTest do
   use ExUnit.Case
 
-  alias NameNormalizer
+  import NameNormalizer
 
   test "degenerate case" do
-    assert NameNormalizer.normalize("") === ""
+    assert normalize("") === {:ok, ""}
   end
 
   test "mononym" do
-    assert NameNormalizer.normalize("Plato") === "Plato"
+    assert normalize("Plato") === {:ok, "Plato"}
   end
 
   test "duonym" do
-    assert NameNormalizer.normalize("Jeff Langr") === "Langr, Jeff"
+    assert normalize("Jeff Langr") === {:ok, "Langr, Jeff"}
   end
 
   test "ignores whitespace" do
-    assert NameNormalizer.normalize("  Jeff Langr  ") === "Langr, Jeff"
+    assert normalize("  Jeff Langr  ") === {:ok, "Langr, Jeff"}
   end
 
   test "initializes middle name" do
-    assert NameNormalizer.normalize("Jeffrey John Langr") === "Langr, Jeffrey J."
+    assert normalize("Jeffrey John Langr") === {:ok, "Langr, Jeffrey J."}
   end
 
   test "does not initialize single-letter middle name" do
-    assert NameNormalizer.normalize("Harry S Truman") === "Truman, Harry S"
+    assert normalize("Harry S Truman") === {:ok, "Truman, Harry S"}
   end
 
   test "initializes multiple middle names" do
-    assert NameNormalizer.normalize("Jeffrey John Schmidt Langr") === "Langr, Jeffrey J. S."
+    assert normalize("Jeffrey John Schmidt Langr") === {:ok, "Langr, Jeffrey J. S."}
+  end
+
+  test "appends suffixes" do
+    assert normalize("Jeffrey John Langr,  Esq. ") === {:ok, "Langr, Jeffrey J., Esq."}
+  end
+
+  test "fails on too many commas" do
+    assert normalize("Hey, Diddle, Diddle") === {:error, "Too many commas"}
   end
 end
